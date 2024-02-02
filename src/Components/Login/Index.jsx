@@ -1,30 +1,58 @@
 import React from 'react'
 import { useState } from 'react';
 import {signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from '../../fbconfig';
+import { auth, firestore } from '../../fbconfig';
 import { useNavigate } from 'react-router-dom';
+import { doc, getDoc, collection, getFirestore } from "firebase/firestore";
+import App from '../../App';
+//import authenticate from './Components/Login/authenticate.json'
 
 
 export default function Index() {
   const[error, setError] = useState(false)
   const[email, setEmail] = useState("")
   const[password, setPassword] = useState("")
+  const [authenticated, setAuthenticated] = useState(false);
 
   const navigate = useNavigate()
 
-  const handleLogin = (e) => {
-    //const auth = getAuth();
-signInWithEmailAndPassword(auth, email, password)
-  .then((userCredential) => {
-    // Signed in 
-    const user = userCredential.user;
-    navigate('./Components/admin')
-  })
-  .catch((error) => {
-    setError(true)
-  });
 
-  }
+const handleLogin = () => {
+  signInWithEmailAndPassword(auth, email, password)
+    .then(async (userCredential) => {
+      const user = userCredential.user;
+      // const db = getFirestore()
+      // navigate('/faculty')
+      // console.log(user.uid)
+      const docSnap = await getDoc(doc(firestore, "users", user.uid));
+
+    if (docSnap.exists()) {
+        console.log("Document data:", docSnap.data());
+        console.log(docSnap.data().role);
+        switch (docSnap.data().role) {
+          case 'admin':
+            navigate('/admin');
+            break;
+          case 'faculty':
+            navigate('/faculty');
+            break;
+          case 'super-admin':
+            navigate('/super-admin');
+            break;
+          default:
+            navigate('/');
+            break;
+        }
+        } else {
+        console.log("No such document!");
+    }
+    })
+    .catch((error) => {
+      console.error('Error signing in:', error);
+      setError(true);
+    });
+};
+
 
   return (
     <div className="w-full h-screen flex items-start ">
